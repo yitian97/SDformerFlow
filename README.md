@@ -5,7 +5,7 @@ This code allows for the reproduction of our paper.
 The following are results tested on our validation dataset on DSEC dataset. It shows events input, optical flow estimation by EVFlowNet, our STT-FlowNet, our SDformer-Flow and the ground truth data. Flow estimation are masked where valid ground truth data is available.
 
 <!-- &nbsp; -->
-<img src="SDFormerflow.gif" width="1152" height="224" />
+<img src="SDFormerflow.gif" width="864" height="168" />
 <!-- &nbsp; -->
 
 ## Environment
