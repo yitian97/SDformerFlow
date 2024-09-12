@@ -1,0 +1,47 @@
+experiment: Default
+
+
+loader:
+    batch_size: 1
+    resolution: [480, 640] # H x W origin resolution
+    scale_factor: 1
+    crop: [288,384]
+    gpu: 0
+#    remap: "v1"
+
+
+model:
+    norm_input: "minmax"
+
+#swin_transformer:
+#    use_arc: [Null,Null]
+#    window_size: [ 2,15,15 ]
+#    pretrained_window_size: [2,9,9]
+
+
+
+loss:
+    lambda_mod: 1
+    lambda_ang: 0
+
+metrics:
+    name: [AEE,AAE]  # FWL, RSAT, AEE
+    mask_events: False
+
+
+vis:
+    verbose: False
+    enabled: True
+    px: 400
+    store: False
+#    store_att: False
+    monitor_fr: False
+    monitor_v: False
+
+
+
+
+test:
+    scale_factor: 1
+    sample: 40
+

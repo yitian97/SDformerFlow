@@ -1,7 +1,14 @@
 # SDformer-Flow: Spiking Neural Network Transformer for Event-based optical flow estimation
 
 
-This code allows for the reproduction of our paper.
+This code allows for the reproduction of our paper:
+
+SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow, ICPR2024
+
+and our new improved version of the model:
+
+SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation. [[arxiv]](https://arxiv.org/abs/2409.04082)
+
 The following are results tested on our validation dataset on DSEC dataset. Flow estimation are masked where valid ground truth data is available.
 
 <!-- &nbsp; -->
@@ -9,6 +16,7 @@ The following are results tested on our validation dataset on DSEC dataset. Flow
 <!-- &nbsp; -->
 
 The following are dense flow results tested on official DSEC test dataset:
+
 <!-- &nbsp; -->
 <img src="DSEC-test.gif" width="800" height="224" />
 <!-- &nbsp; -->
@@ -100,17 +108,24 @@ python train_mdr_supervised_SNN.py --config configs/train_MDR_supervised_MS_Spik
 ## Please cite our paper if you find this code useful:
 ```
 @inproceedings{tian2024sdformerflow,
-title={SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow},
-author={Tian, Yi and Andrade-Cetto, Juan},
-booktitle=International Conference on Pattern Recognition (ICPR),
-year={2024},
+               title={SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow},
+               author={Tian, Yi and Andrade-Cetto, Juan},
+               booktitle={International Conference on Pattern Recognition (ICPR)},
+               year={2024},
+}
+```
+```
+@misc{tian2024sdformerflow2,
+      title={SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation}, 
+      author={Yi Tian and Juan Andrade-Cetto},
+      year={2024},
+      eprint={2409.04082},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2409.04082}, 
 }
 ```
 ## Thanks to the following open-source projects:
-
-For event data preprocessing, refer to the following project:
-[Optical Flow estimation from Event Cameras and Spiking Neural Networks](https://github.com/j-cuadrado/of_ev_snn)
-
 
 
 The spatial-temporal swin spikeformer module is adapted from the following project:
@@ -119,3 +134,11 @@ The spatial-temporal swin spikeformer module is adapted from the following proje
 
 Spiking Neurals Networks are implemented using Spikingjelly library:
 [SpikingJelly](https://github.com/fangwei123456/spikingjelly)
+
+
+For event data preprocessing, refer to the following project:
+[E-RAFT: Dense Optical Flow from Event Cameras](https://github.com/uzh-rpg/E-RAFT); 
+[Optical Flow estimation from Event Cameras and Spiking Neural Networks](https://github.com/j-cuadrado/of_ev_snn)
+
+
+

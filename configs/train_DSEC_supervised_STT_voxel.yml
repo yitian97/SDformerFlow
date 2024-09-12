@@ -1,0 +1,84 @@
+experiment: Default
+
+data:
+    path: data/Datasets/DSEC/saved_flow_data
+    preprocessed: True
+    num_frames: 10 #num of frames per ts/
+    num_chunks: 2
+
+
+model:
+    name: STTFlowNet
+    encoding: voxel # voxel/cnt/spike
+    norm_input: True # normalize input
+    num_bins: 20 # num frame* chunks
+    base_num_channels: 96
+    kernel_size: 3
+    activations:  [relu, Null]  # activations for ff and rec neurons
+    final_activation: Null
+    mask_output: True
+    norm:  Null
+
+swin_transformer:
+    use_arc: ["swinv2","PatchEmbedLocal"]  #PatchEmbedLocal,PatchEmbedLocalGlobal,PatchEmbed3D
+    state_combination: "none"
+    base_num_channels: 96  #embedded dim
+    swin_depths: [2,2,6]  #swin layers
+    swin_num_heads: [ 3,6,12]
+    swin_out_indices: [ 0,1,2]
+    swin_patch_size: [ 10,4,4 ] #spatio-temporal patch
+    window_size: [ 2,9,9 ]
+    pretrained_window_size: [ 0,0,0 ]
+    mlp_ratio: 4
+
+
+spiking_neuron: Null
+
+loss:
+    training: 'supervised'
+    lambda_mod: 1
+    lambda_ang: 0
+    gamma: Null
+    clip_grad: Null # set to Null to disable
+
+
+optimizer:
+    name: AdamW
+    lr: 0.001
+    wd: 0.01
+    scheduler: "multistep"
+    milestones: [5, 10, 20, 30, 40, 50, 70, 90]
+    use_amp: False
+    num_acc: 1
+
+loader:
+    n_epochs: 100
+    batch_size: 8
+    batch_multiplyer: 1
+    resolution: [480, 640] # H x W origin resolution
+    augment: ["Horizontal", "Vertical", "Polarity"]
+    augment_prob: [0.5, 0.5, 0.5]
+    max_drop_rate: 0.6
+    polarity: True
+    crop: [288,384]
+    gpu: 0
+    n_workers: 4
+
+vis:
+    verbose: False
+    enabled: False
+    px: 400
+    store_grads: False
+    store: False
+    mask_events: False
+
+metrics:
+    name: [AEE]  # FWL, RSAT, AEE
+    flow_scaling: 1
+    mask_events: False
+
+test:
+    scale_factor: 1
+    sample: 80
+    n_valid: 5
+

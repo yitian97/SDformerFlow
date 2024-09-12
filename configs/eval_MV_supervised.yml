@@ -1,0 +1,38 @@
+data:
+    path: data/Datasets/MVSEC
+    test_sequence: "indoor_flying3" #outdoor_day1, indoor_flying1, indoor_flying2,indoor_flying3
+    event_interval: dt1
+
+
+
+loader:
+    batch_size: 1
+    resolution: [260, 346] # H x W
+    crop: [256, 256]
+    gpu: 0
+#    remap: "v1"
+
+#model:
+#    norm_input: True
+#swin_transformer:
+#    use_arc: [Null,Null]
+#    window_size: [ 2,8,8 ]
+#    pretrained_window_size: [2,9,9]
+test:
+    scale_factor: 1
+#    swin_patch_size: [10,4,4]
+    sample: 10
+
+metrics:
+    name: [AEE,AAE]  # FWL, RSAT, AEE
+    mask_events: True
+
+vis:
+    verbose: False
+    enabled: True
+    px: 400
+    store: False
+    store_att: False
+    monitor_fr: False
+    monitor_v: False
+

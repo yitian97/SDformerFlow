@@ -1,0 +1,110 @@
+experiment: Default
+
+data:
+    path: data/Datasets/DSEC/saved_flow_data
+    preprocessed: True
+    num_frames: 10 #num of frames per ts/
+    num_chunks: 1
+    step_mode: 'm'
+    spike_th: Null   #spike th for input
+
+
+model:
+    name: MS_SpikingformerFlowNet_en4
+    encoding: voxel # voxel/cnt/spike
+    norm_input: "minmax" # normalize input
+    num_bins: 10 # num frame* chunks
+    base_num_channels: 96
+    kernel_size: 3
+    activations:  [relu, Null]  # activations for ff and rec neurons
+    final_activation: Null
+    mask_output: True
+    norm:  Null
+    use_upsample_conv : False
+
+
+
+
+
+swin_transformer:
+    use_arc: ["swinv1","MS_PED_Spiking_PatchEmbed_Conv_sfn"]  #Spiking_PatchEmbedLocal,MS_Spiking_PatchEmbedLocal,Spiking_PatchEmbed_sfn
+    state_combination: "none"
+    base_num_channels: 96  #embedded dim
+    swin_depths: [2,2,6,2]  #swin layers
+    swin_num_heads: [ 3,6,12,24]
+    swin_out_indices: [ 0,1,2,3]
+    swin_patch_size: [ 1,1,2,2 ] #spatio-temporal patch  T,P,H,W
+    window_size: [ 2,9,9 ]
+    pretrained_window_size: [ 0,0,0 ]
+    mlp_ratio: 4
+#    norm: "LN"
+
+
+
+
+spiking_neuron:
+    num_steps: 10
+    v_th: 0.1
+    v_reset: Null
+    neuron_type: psn   #lif, glif, psn,if, plif
+    surrogate_fun: surrogate.ATan()
+    tau: 2.
+    detach_reset: True
+    spike_norm: "BN" #norm for spike layer in general
+
+
+
+
+loss:
+    training: 'supervised'
+    lambda_mod: 1
+    lambda_ang: 0
+    flow_regul_weight: 0.001
+    gamma: Null
+    clip_grad: 100.0 # set to Null to disable
+    overwrite_intermediate: False #mask of the last forward pass
+
+optimizer:
+    name: AdamW
+    lr: 0.0001
+    wd: 0.01
+    scheduler: "multistep"
+    milestones: [10, 20, 30, 40, 50, 70, 90, 120]
+    use_amp: True
+    num_acc: 1
+#    SG_alpha: 4.
+
+
+loader:
+    n_epochs: 60
+    batch_size: 1
+    batch_multiplyer: 1
+    resolution: [480, 640] # H x W origin resolution
+    augment: ["Horizontal", "Vertical", "Polarity"]
+    augment_prob: [0.5, 0.5, 0.]
+    max_drop_rate: 0.6
+    polarity: True  #use polarity as +-, False: plarity in channels For SNN: true: load bins false: load bins_pol
+    crop: [288,384]
+    gpu: 0
+    n_workers: 4
+    parallel: False
+
+vis:
+    verbose: False
+    enabled: False
+    px: 400
+    store_grads: False
+    store: False
+    mask_events: False
+    store_spike_rates: False
+
+
+metrics:
+    name: [AEE]  # FWL, RSAT, AEE
+    flow_scaling: 1
+    mask_events: False
+
+test:
+    sample: 40
+    n_valid: 5
+
