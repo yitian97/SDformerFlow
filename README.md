@@ -1,12 +1,9 @@
 # SDformer-Flow: Spiking Neural Network Transformer for Event-based optical flow estimation
 
 
-This code allows for the reproduction of our paper:
-
-SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow, ICPR2024
+This code allows for the reproduction of our paper: SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow, ICPR2024
 
 and our new improved version of the model:
-
 SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation. [[arxiv]](https://arxiv.org/abs/2409.04082)
 
 The following are results tested on our validation dataset on DSEC dataset. Flow estimation are masked where valid ground truth data is available.
@@ -105,7 +102,7 @@ For training SDformerFlow on the MDR dataset, run:
 python train_mdr_supervised_SNN.py --config configs/train_MDR_supervised_MS_Spikingformer.yml
 ```
 
-## Please cite our paper if you find this code useful:
+## Please cite our paper if you find the code useful:
 ```
 @inproceedings{tian2024sdformerflow,
                title={SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow},

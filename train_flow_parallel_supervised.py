@@ -3,7 +3,6 @@ import mlflow
 import torch
 from torch.optim import *
 from configs.parser import YAMLParser
-#from utils.utils import print_parameters
 from loss.flow_supervised import *
 from tqdm import tqdm
 import math
@@ -159,7 +158,6 @@ def train(args, config_parser):
 
     #summary(model)
     print(model)
-    # print_parameters(model)
     print("Total parameters: ", count_parameters(model))
 
     # log config
@@ -221,7 +219,6 @@ def train(args, config_parser):
 
             with torch.cuda.amp.autocast(enabled=scaler is not None):
                 # forward pass
-
                 if config['model']['encoding'] == 'cnt':
                     if config["vis"]["enabled"]:
                         chunk_vis = torch.sum(chunk, dim=1)

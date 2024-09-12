@@ -91,8 +91,6 @@ class SLTTLIFNode(LIFNode):
             return spike
 
 
-
-
 class GatedLIFNode(base.MemoryModule):
     def __init__(self, T: int, inplane = None,
                  init_linear_decay = None, init_v_subreset = None, init_tau: float = 0.25, init_v_threshold: float = 0.5, init_conduct: float = 0.5,

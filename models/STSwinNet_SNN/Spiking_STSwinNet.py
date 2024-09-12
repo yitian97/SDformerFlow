@@ -5,15 +5,6 @@ from .SNN_models import *
 from torch import nn
 from spikingjelly.activation_based import layer, functional
 
-if torch.cuda.is_available():
-    dev_0 = "cpu"
-    dev_1 = "cpu"
-    dev_2 = "cpu"
-else:
-    dev_0 = "cpu"
-    dev_1 = "cpu"
-    dev_2 = "cpu"
-
 class spiking_former_encoder(nn.Module):
     swin_type = Spiking_SwinTransformer3D_v2
     #without projections
@@ -41,12 +32,6 @@ class spiking_former_encoder(nn.Module):
         super(spiking_former_encoder, self).__init__()
 
         self.num_blocks = in_chans // patch_size[0]
-        # if pol_in_channel:
-        #     self.num_blocks = self.num_blocks * 2
-        # self.num_blocks = 1
-        # self.out_num_depths = self.num_blocks - 1
-        # self.block_channel = block_channel
-
         self.img_size = img_size
         self.patch_size = patch_size
         self.in_chans = in_chans
@@ -85,53 +70,33 @@ class spiking_former_encoder(nn.Module):
             **spiking_kwargs
         )
 
-        # self.patches_T = self.num_blocks
-        # self.patch_T = self.patches_T // self.num_blocks  # 1
-        # self.projections = self.build_projections()
-
 
 
 
 
     def forward(self, inputs):
-
         features = self.swin3d(inputs)
-
         outs = []
-
         #concatenate encoder features along temporal bins and project to B,C,H,W
         for i in range(self.num_encoders): #swin number
-        #     out_layer_i = []
-        #     features_i = features[i].chunk(self.num_blocks, 2)
-        #     #print(features_i[0].shape)
-        #     B, C, T, H, W = features_i[0].shape
-        #     # features_i = features_i.reshape(B, -1, H, W)
-        #     for k in range(self.num_blocks):
-        #         feature_k = features_i[k].reshape(B, -1, H, W)  # B,C,H,W
-        #         out_k = self.projections[i][k](feature_k)
-        #         out_layer_i.append(out_k)
-        #     out_i = torch.cat(out_layer_i, dim=1) #for each encoder cat 4 blocks featuremaps
             out_i = features[i].permute(2, 0, 1, 3, 4)
             outs.append(out_i) #C W/2 H/2   2C W/4 H/4 4c ...
-
 
         return outs
 
 class MS_spiking_former_encoder(spiking_former_encoder):
     swin_type = MS_Spiking_SwinTransformer3D_v2
 
-
-
 class Spikingformer_MultiResUNet(SpikingMultiResUNet):
     """
+    Unet with spikeformer encoders and conv decoders
     full spiking neurons
-
+    SEW
     """
     pol_channel = False
     encoder_block = spiking_former_encoder
     upsample_4 = False
 
-    #sew
     def __init__(self, unet_kwargs, stt_kwargs):
         unet_kwargs.pop("spiking_feedforward_block_type", None)
         super().__init__(**unet_kwargs)
@@ -159,9 +124,7 @@ class Spikingformer_MultiResUNet(SpikingMultiResUNet):
         self.encoder_input_sizes.insert(0,self.base_num_channels)
         self.encoder_input_sizes.pop()
         self.max_num_channels = self.encoder_output_sizes[-1]
-
         #self.max_num_channels = self.base_num_channels * pow(2, self.num_encoders-1)
-
         # self.num_channel_spikes = config["num_channel_spikes"]
 
         self.resblocks = self.build_resblocks()
@@ -196,28 +159,13 @@ class Spikingformer_MultiResUNet(SpikingMultiResUNet):
         pass
 
     def forward(self, x):
-        """
-        :param x: N x num_input_channels x H x W
-        :return: [N x num_output_channels x H x W for i in range(self.num_encoders)]
-        """
-
-
-
         # encoder
         blocks = self.encoders(x)
         x = blocks[-1]
 
-        # out_plot = x.detach()
-        # plot_2d_feature_map(out_plot[0, :,...])
-
-        # xs = x.chunk(self.steps, 1)
-        # x = torch.stack(list(xs), dim=1).permute(1, 0, 2, 3, 4)  #
-
         # residual blocks T B C H W
-
         for i, resblock in enumerate(self.resblocks):
             x = resblock(x)
-            # spiking_rates["res" + str(i)] = torch.mean((x != 0).float())
 
         # decoder and multires predictions
         predictions = []
@@ -227,21 +175,8 @@ class Spikingformer_MultiResUNet(SpikingMultiResUNet):
             if i > 0:
                 x = self.skip_ftn(predictions[-1], x,dim=2)
             x = decoder(x)
-            # spiking_rates["decoder" + str(i)] = torch.mean((x != 0).float())
-
-            # pred_out = []
-
-            # for i in range(self.steps):
-            #     pred_i = pred(x[i])
-            #     pred_i = pred_i.unsqueeze(0)
-            #     pred_out.append(pred_i)
-            # pred_out = torch.cat(pred_out,dim=0)
             pred_out = pred(x)
             predictions.append(pred_out)
-        # for i,pred in enumerate(predictions):
-        #     self.preds_out[i](pred)
-        #     flow = self.preds_out[i].v
-        #     flow_pred.append(flow)
 
 
         return predictions
@@ -301,9 +236,12 @@ class Spikingformer_MultiResUNet(SpikingMultiResUNet):
 
         return flops_record
 
-
-
 class MS_Spikingformer_MultiResUNet(Spikingformer_MultiResUNet):
+    """
+    Unet with spikeformer encoders and conv decoders
+    full spiking neurons
+    MS shortcut
+    """
     pol_channel = False
     encoder_block = MS_spiking_former_encoder
     ff_type = MS_SpikingConvEncoderLayer
@@ -313,22 +251,16 @@ class MS_Spikingformer_MultiResUNet(Spikingformer_MultiResUNet):
     pred_type = MS_SpikingPredLayer
     w_scale_pred = 0.01
 
-
-
-
 class SpikingformerFlowNet(STTFlowNet):
 
     """
-
-    3 encoders
-
-    encoder: convlstm
-    decoder
-
+    SEW shortcut
+    3 encoder
     """
     unet_type = Spikingformer_MultiResUNet
     recurrent_block_type = "none"
     num_en = 3
+
     def init_weights(self):
         def _init_weights(m):
             if isinstance(m, nn.Linear):
@@ -344,23 +276,6 @@ class SpikingformerFlowNet(STTFlowNet):
         self.apply(_init_weights)
 
     def forward(self, x, log=False):
-        """
-        :param event_tensor: N x num_bins x H x W   normalized t (-1 1)
-
-        :param event_cnt: N x 4 x H x W per-polarity event cnt and average timestamp
-        :param log: log activity
-        :return: output dict with list of [N x 2 X H X W] (x, y) displacement within event_tensor.
-        """
-
-
-
-
-        # x = torch.transpose(x, 1, 2)
-        # pad size for input
-        # factor = {'h':2, 'w':2} # patch size for l0
-        # pad_crop = CropSize(W, H, factor)
-        # if (H % factor['h'] != 0) or (W % factor['w'] != 0):
-        #     x = pad_crop.pad(x)
         H, W = x.shape[-2],x.shape[-1]
         multires_flow = self.sttmultires_unet.forward(x)
 
@@ -374,7 +289,7 @@ class SpikingformerFlowNet(STTFlowNet):
 
 
         for flow in multires_flow:
-        #     #TODO: change sum to lif neuron accumulation , how to scale the flow
+
             flow = torch.sum(flow, dim = 0)
             flow_list.append(
                 torch.nn.functional.interpolate(
@@ -387,24 +302,6 @@ class SpikingformerFlowNet(STTFlowNet):
             )
 
 
-
-
-        # flow = torch.sum(multires_flow[-1], dim = 0)
-        # # flow = multires_flow[-1][-1]
-        # flow_list.append(torch.nn.functional.interpolate(
-        #             flow,
-        #             scale_factor=(
-        #                 H / flow.shape[-2],
-        #                 W / flow.shape[-1],
-        #             ),
-        #      )
-        # )
-        # flow_list.append(torch.sum(multires_flow[-1], dim=0))
-
-
-
-
-
         return {"flow": flow_list, "attn": attns}
 
     def flops(self):
@@ -414,18 +311,16 @@ class SpikingformerFlowNet(STTFlowNet):
         return self.sttmultires_unet.record_flops()
 
 class MS_SpikingformerFlowNet(SpikingformerFlowNet):
-
     """
-
-    3 encoders
-
-    encoder: convlstm
-    decoder
-
+    with MS shortcut
     """
     unet_type = MS_Spikingformer_MultiResUNet
 
 class MS_SpikingformerFlowNet_en4(SpikingformerFlowNet):
+    """
+    with MS shortcut
+    4 encoder
+    """
     unet_type = MS_Spikingformer_MultiResUNet
     num_en = 4
 

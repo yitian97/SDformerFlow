@@ -8,7 +8,7 @@ from tqdm import tqdm
 from utils.mlflow import log_config, log_results
 from utils.utils import load_model,  create_model_dir,save_csv, save_model, count_parameters,print_parameters
 from utils.visualization import Visualization_DSEC
-from DSEC_dataloader.DSEC_dataset_lite import DSECDatasetLite,DSECDatasetTest
+from DSEC_dataloader.DSEC_dataset_lite import DSECDatasetLite
 from DSEC_dataloader.data_augmentation import downsample_data,Compose,CenterCrop,RandomCrop,RandomRotationFlip,Random_event_drop
 import math
 from spikingjelly.activation_based import functional,neuron

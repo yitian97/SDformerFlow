@@ -4,7 +4,6 @@ import torch
 from torch.optim import *
 #from torchsummary import summary
 from configs.parser import YAMLParser
-#from utils.utils import print_parameters
 from loss.flow_supervised import *
 from tqdm import tqdm
 import math
@@ -22,9 +21,6 @@ from torch.utils.data.dataloader import DataLoader
 from MDR_dataloader.MDR import MDREventFlow
 
 import random
-# from pthflops import count_ops
-# from flopth import flopth
-# from ptflops import get_model_complexity_info
 
 use_ml_flow = True
 
@@ -150,9 +146,7 @@ def train(args, config_parser):
     print(model)
     print_parameters(model)
     print("Total parameters: ", count_parameters(model))
-    # print("CPU: ", psutil.cpu_percent())
-    # print("virtual: ", psutil.virtual_memory().percent)  # Testing the GPUtil library for both GPU performance details
-    # GPUtil.showUtilization()
+
     # log config
     if use_ml_flow:
         mlflow.log_param("number of params", count_parameters(model))

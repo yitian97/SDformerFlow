@@ -300,7 +300,7 @@ class MvsecEventFlow_dt4(MvsecEventFlow):
 
 if __name__ == '__main__':
     from configs.parser import YAMLParser
-    config = YAMLParser("../configs/train_MDR_supervised_MS_Spikingformer.yml").config
+    config = YAMLParser("../configs/train_MDR_supervised_SDformerFlow.yml").config
     config = YAMLParser.combine_entries(config)
 
 

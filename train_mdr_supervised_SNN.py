@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 from torch.optim import *
 from configs.parser import YAMLParser
-#from utils.utils import print_parameters
 from loss.flow_supervised import *
 from tqdm import tqdm
 import math
@@ -345,7 +344,6 @@ def train(args, config_parser):
 
         #####validate after each 5 epoch############
         # Validation Dataset
-
         if epoch % config["test"]["n_valid"] == 0:
             sample = 0
             model.eval()
@@ -459,7 +457,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        default="configs/train_MDR_supervised_MS_Spikingformer.yml",
+        default="configs/train_MDR_supervised_SDformerFlow.yml",
         help="training configuration",
     )
     parser.add_argument(

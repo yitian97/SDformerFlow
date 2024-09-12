@@ -8,7 +8,7 @@ from tqdm import tqdm
 from utils.mlflow import log_config, log_results
 from utils.utils import load_model,  create_model_dir,save_csv, save_model, count_parameters,print_parameters
 from utils.visualization import Visualization_DSEC
-from DSEC_dataloader.DSEC_dataset_lite import DSECDatasetLite,DSECDatasetTest
+from DSEC_dataloader.DSEC_dataset_lite import DSECDatasetLite
 from DSEC_dataloader.data_augmentation import downsample_data,Compose,CenterCrop,RandomCrop,RandomRotationFlip,Random_event_drop
 import math
 from spikingjelly.activation_based import functional,neuron
@@ -326,7 +326,6 @@ if __name__ == "__main__":
         default="",
         help="location of the mlflow ui",
     )
-
 
     parser.add_argument("--runid", default="4b3da75cc15e44da80b84c3fb35ad618", help="mlflow run")
     parser.add_argument(

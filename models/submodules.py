@@ -57,8 +57,6 @@ class ConvLayer(nn.Module):
 
         return out
 
-
-
 class TransposedConvLayer(nn.Module):
     """
     Transposed convolutional layer to increase spatial resolution (x2) in a decoder.
@@ -158,7 +156,6 @@ class UpsampleConvLayer(nn.Module):
             out = self.activation(out)
 
         return out
-
 
 class ResidualBlock(nn.Module):
     def __init__(

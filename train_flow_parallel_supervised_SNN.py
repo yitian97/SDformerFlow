@@ -4,7 +4,6 @@ import os
 import torch
 from torch.optim import *
 from configs.parser import YAMLParser
-#from utils.utils import print_parameters
 from loss.flow_supervised import *
 from tqdm import tqdm
 import math
@@ -500,8 +499,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--config",
-        # default="configs/train_DSEC_supervised_MS_Spikingformer4.yml",
-        default="configs/train_DSEC_supervised_MS_Spikingformer4.yml",
+        default="configs/train_DSEC_supervised_SDformerFlow_en4.yml",
         help="training configuration",
     )
     parser.add_argument(

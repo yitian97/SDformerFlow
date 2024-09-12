@@ -1,11 +1,15 @@
 import os
-
 import cv2
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import imageio
+
+"""
+Visualization utility class
+code adapted from https://github.com/tudelft/event_flow
+"""
 
 class Visualization_DSEC:
     """
@@ -349,44 +353,3 @@ class Visualization_DSEC:
         event_image=(event_voxel-frame_min)/(frame_max-frame_min)
         return event_image
 
-
-def vis_activity(activity, activity_log):
-    # start of new sequence
-    if activity_log is None:
-        plt.close("activity")
-        activity_log = []
-
-    # update log
-    activity_log.append(activity)
-    df = pd.DataFrame(activity_log)
-
-    # retrieves fig if it exists
-    fig = plt.figure("activity")
-    # make axis if it doesn't exist
-    if not fig.axes:
-        ax = fig.add_subplot()
-    else:
-        ax = fig.axes[0]
-    lines = ax.lines
-
-    # plot data
-    if not lines:
-        for name, data in df.iteritems():
-            ax.plot(data.index.to_numpy(), data.to_numpy(), label=name)
-        ax.grid()
-        ax.legend()
-        ax.set_xlabel("step")
-        ax.set_ylabel("fraction of nonzero outputs")
-        plt.show(block=False)
-    else:
-        for line in lines:
-            label = line.get_label()
-            line.set_data(df[label].index.to_numpy(), df[label].to_numpy())
-
-    # update figure
-    fig.canvas.draw()
-    ax.relim()
-    ax.autoscale_view(True, True, True)
-    fig.canvas.flush_events()
-
-    return activity_log

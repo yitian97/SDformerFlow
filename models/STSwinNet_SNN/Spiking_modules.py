@@ -145,7 +145,6 @@ class SpikingNormLayer(nn.Module):
             x = self.norm_layer(x)
         return x
 
-
 class MS_SepConv(nn.Module):
     """
     Inverted separable convolution from MobileNetV2: https://arxiv.org/abs/1801.04381.
@@ -199,9 +198,8 @@ class MS_SepConv(nn.Module):
 
 class MS_SpikingSepConvEncoderBlock(nn.Module):
     """
-    Convolution layer with spiking neuron. Default: no bias, arctanspike, no downsampling, no norm, LIF.
+    SepConvolution layer with spiking neuron with MS shortcut. De
     """
-
     def __init__(
         self,
         in_channels,
@@ -251,7 +249,7 @@ class MS_SpikingSepConvEncoderBlock(nn.Module):
 
 class SpikingConvEncoderLayer(nn.Module):
     """
-    Convolution layer with spiking neuron. Default: no bias, arctanspike, no downsampling, no norm, LIF.
+    Convolution layer with spiking neuron with SEW shortcut.
     """
 
     def __init__(
@@ -299,6 +297,7 @@ class SpikingConvEncoderLayer(nn.Module):
 
 class MS_SpikingConvEncoderLayer(nn.Module):
     """
+    Convolution layer with spiking neuron with MS shortcut.
     no spike layer for the first layer
     """
     def __init__(
@@ -349,8 +348,8 @@ class MS_SpikingConvEncoderLayer(nn.Module):
 
 class SpikingDecoderLayer(nn.Module):
     """
-    Upsampling spiking layer (bilinear interpolation + Conv2d) to increase spatial resolution (x2) in a decoder.
-    Default: no bias, arctanspike, no downsampling, no norm, LIF.
+    Upsampling spiking layer to increase spatial resolution (x2) in a decoder.
+    SEW shortcut
     """
     upsample_mode = "bilinear" # bilinear or nearest
 
@@ -401,7 +400,6 @@ class SpikingTransposeDecoderLayer(nn.Module):
     Upsampling spiking layer using transposed convolution to increase spatial resolution (x2) in a decoder.
 
     """
-
 
     def __init__(
         self,
@@ -463,10 +461,8 @@ class SpikingTransposeDecoderLayer(nn.Module):
 class MS_SpikingTransposeDecoderLayer(SpikingTransposeDecoderLayer):
     """
     Upsampling spiking layer using transposed convolution to increase spatial resolution (x2) in a decoder.
-
+    MS shortcut
     """
-
-
 
     def forward(self, x):
 
@@ -480,7 +476,7 @@ class MS_SpikingTransposeDecoderLayer(SpikingTransposeDecoderLayer):
 class MS_SpikingSepTransposeDecoderLayer(nn.Module):
     """
     Upsampling spiking layer using separable transposed convolution to increase spatial resolution (x2) in a decoder.
-
+    MS shortcut
     """
 
 
@@ -548,6 +544,10 @@ class MS_SpikingSepTransposeDecoderLayer(nn.Module):
         return x
 
 class MS_SpikingDecoderLayer(SpikingDecoderLayer):
+    """
+    Upsampling spiking layer to increase spatial resolution (x2) in a decoder.
+    MS shortcut
+    """
     def forward(self, x):
         x_out = []
         steps = x.shape[0]
@@ -567,7 +567,7 @@ class MS_SpikingDecoderLayer(SpikingDecoderLayer):
 
 class SpikingPredLayer(nn.Module):
     """
-    Convolution layer with spiking neuron. Default: no bias, arctanspike, no downsampling, no norm, LIF.
+    Convolution layer with spiking neuron.
     """
 
     def __init__(
@@ -606,7 +606,7 @@ class SpikingPredLayer(nn.Module):
 
 class MS_SpikingPredLayer(nn.Module):
     """
-    Convolution layer with spiking neuron. Default: no bias, arctanspike, no downsampling, no norm, LIF.
+    Convolution layer with spiking neuron.
     """
 
     def __init__(
@@ -646,10 +646,9 @@ class MS_SpikingPredLayer(nn.Module):
 
         return x
 
-
 class MS_SpikingSepPredLayer(nn.Module):
     """
-    Convolution layer with spiking neuron. Default: no bias, arctanspike, no downsampling, no norm, LIF.
+    SepConvolution layer with spiking neuron.
     """
 
     def __init__(
@@ -704,8 +703,7 @@ class MS_SpikingSepPredLayer(nn.Module):
 
 class SpikingEmbeddingLayer(nn.Module):
     """
-    Layer comprised of a convolution followed by a recurrent convolutional block,
-    both spiking. Default: no bias, arctanspike, no downsampling, no norm, LIF.
+    Layer comprised of a Spiking convolution layer for patch embedding
     """
 
     def __init__(
@@ -762,6 +760,7 @@ class SpikingEmbeddingLayer(nn.Module):
 
 
         return out
+
     def forward(self, x):
         if self.use_MS:
             out = self._forward_MS(x)
@@ -824,9 +823,6 @@ class SpikingPEDLayer(nn.Module):
             x = self.norm_layer(x)
         x = (x+x_res).reshape(T, B, -1, self.patch[0], self.patch[1]).contiguous()
         return x
-
-
-
 
 class SEWResBlock(nn.Module):
     """
@@ -937,7 +933,11 @@ class MS_ResBlock(nn.Module):
         return out
 
 class spiking_residual_feature_generator(nn.Module):
-## spiking version of the residual feature generator
+    """
+    spiking version of the residual feature generator
+    SEW residual block
+    """
+
     res_block_type = SEWResBlock
 
     def __init__(self, dim, norm, num_resblocks=4, cnt_fun='ADD',**spiking_kwargs):
@@ -960,20 +960,17 @@ class spiking_residual_feature_generator(nn.Module):
             )
 
 
-
     def forward(self, x):
-
         for i in range(self.num_resblocks):
             x = self.resblocks[i](x)
-
-
         return x
 
-
 class MS_spiking_residual_feature_generator(spiking_residual_feature_generator):
-## spiking version of the residual feature generator
+    """
+    spiking version of the residual feature generator
+    MS residual block
+    """
     res_block_type = MS_ResBlock
-
 
 class Spiking_PatchEmbedLocal(nn.Module):
     use_MS = False
@@ -1021,8 +1018,6 @@ class Spiking_PatchEmbedLocal(nn.Module):
             )
 
         self.spike_proj_flag = spiking_proj
-        # self.proj = nn.Conv3d(embed_dim, embed_dim, kernel_size=patch_size[1:], stride=patch_size[1:])
-        # self.proj = nn.Conv2d(embed_dim, embed_dim, kernel_size=patch_size[2:], stride=patch_size[2:])
         if self.spike_proj_flag:
             self.proj = SpikingEmbeddingLayer(embed_dim, embed_dim, kernel_size=3, stride=patch_size[2:], padding=1, norm = self.spike_norm, patch_resolution = self.patches_resolution, use_MS=self.use_MS, **spiking_kwargs)
 
@@ -1033,20 +1028,7 @@ class Spiking_PatchEmbedLocal(nn.Module):
 
     def forward(self, x):
         """Forward function."""
-        # padding
 
-        # B, T, C, H, W = x.size()
-
-        #pad the input for patch size (TPHW)
-        # if W % self.patch_size[3] != 0:
-        #     x = F.pad(x, (0, self.patch_size[2] - W % self.patch_size[2]))
-        # if H % self.patch_size[2] != 0:
-        #     x = F.pad(x, (0, 0, 0, self.patch_size[1] - H % self.patch_size[1]))
-        # if T % self.patch_size[0] != 0:
-        #     x = F.pad(x, (0, 0, 0, 0, 0, self.patch_size[0] - D % self.patch_size[0]))
-        # spiking_rates = {"input": torch.mean((x != 0).float())}
-        # xs = x.chunk(self.num_steps, 1)
-        # xs = torch.stack(list(xs), dim=1).permute(1, 0, 2, 3, 4)  # T B C H W
         xs = self.head(x)
         # spiking_rates["head"] = torch.mean((xs != 0).float())
 
@@ -1079,9 +1061,11 @@ class Spiking_PatchEmbedLocal(nn.Module):
 
     def extra_repr(self) -> str:
         return f" num_steps={self.num_steps}, patches_resolution={self.patches_resolution}"
+
 class Spiking_PatchEmbed_sfn(nn.Module):
     '''
     spiking patch embedding layer with 4 channel input as spike flow net
+    SEW shortcut
     '''
     use_MS = False
     num_res = 2
@@ -1158,24 +1142,6 @@ class Spiking_PatchEmbed_sfn(nn.Module):
         if x.size(1) > self.num_bins:
             x = x[:, :self.num_bins, :, :, :]
 
-
-        # B, T, C, H, W = x.size()
-        #TODO: why is this generating differnet results
-        # event_repr has a dimension (batch_size, num_bins, num_polarities, height, width)
-        # event_reprs = x.permute(0, 2, 3, 4, 1)
-        # x=x.permute(0,2,1,3,4)
-        # x = x.view([x.shape[0], -1] + list(x.shape[3:])) #B C P H W -> B (C*P) H W
-        # x = x.chunk(self.num_steps, 1)
-        # x1 = torch.stack(list(x), dim=1).permute(1, 0, 2, 3, 4)  # T B C H W
-
-        # num_ch = event_reprs.size(-1) * 2//self.num_steps
-        # new_event_reprs = torch.zeros(event_reprs.size(0), num_ch, event_reprs.size(2), event_reprs.size(3), self.num_steps).float().to(event_reprs.device)
-        # new_event_reprs[:, 0, :, :, :] = event_reprs[:,0,:,:,0:self.num_steps ] #former_inputs_on
-        # new_event_reprs[:, 1, :, :, :] = event_reprs[:,1,:,:,0:self.num_steps ] #former_inputs_off
-        # new_event_reprs[:, 2, :, :, :] = event_reprs[:,0,:,:,self.num_steps :self.num_steps *2] #latter_inputs_on
-        # new_event_reprs[:, 3, :, :, :] = event_reprs[:,1,:,:,self.num_steps :self.num_steps *2] #latter_inputs_off
-        # x2 = new_event_reprs.permute(4,0,1,2,3) #BC H W T -> T B C H W
-
         event_reprs = x.permute(0, 2, 3, 4, 1)
 
         new_event_reprs = torch.zeros(event_reprs.size(0), self.num_ch, event_reprs.size(2), event_reprs.size(3),
@@ -1224,73 +1190,18 @@ class Spiking_PatchEmbed_sfn(nn.Module):
         return f" num_steps={self.num_steps}, patches_resolution={self.patches_resolution}"
 
 class MS_Spiking_PatchEmbed_sfn(Spiking_PatchEmbed_sfn):
+    '''
+    spiking patch embedding layer with 4 channel input as spike flow net
+    MS shortcut
+    '''
     use_MS = True
     num_res = 2
-class MultiGPU_Spiking_PatchEmbed_sfn(Spiking_PatchEmbed_sfn):
-    use_MS = False
-    num_res = 2
 
-    def __init__(self,**kwargs):
-        super().__init__(**kwargs)
-        self.head = self.head.to(dev_0)
-        self.residual_encoding = self.residual_encoding.to(dev_0)
-        self.proj = self.proj.to(dev_0)
-
-
-    def forward(self, x):
-        """Forward function."""
-        # padding
-        if x.size(1) > self.num_bins:
-            x = x[:, :self.num_bins, :, :, :]
-
-
-        event_reprs = x.permute(0, 2, 3, 4, 1)
-
-        new_event_reprs = torch.zeros(event_reprs.size(0), self.num_ch, event_reprs.size(2), event_reprs.size(3),
-                                      self.num_steps).to(event_reprs.device)
-
-        for i in range(self.num_ch):
-            start, end = i // 2 * self.num_steps, (i // 2 + 1) * self.num_steps
-            new_event_reprs[:, i, :, :, :] = event_reprs[:, i % 2, :, :, start:end]
-
-        x = new_event_reprs.permute(4, 0, 1, 2, 3)
-
-        # spiking_rates = {"input": torch.mean((x != 0).float())}
-
-        xs = self.head(x.to(dev_0))
-        # spiking_rates["head"] = torch.mean((xs != 0).float())
-
-        # out, spiking_rates["res"] = self.residual_encoding(xs)
-        out = self.residual_encoding(xs.to(dev_0))
-
-        # out_plot = out.detach()
-        # plot_2d_feature_map(out_plot[0,0,:,...])
-        if self.spike_proj_flag:
-            out = self.proj(out)  # T, B, C, H, W
-
-        else:
-            outs = []
-            for i in range(self.num_blocks):
-                outi = self.proj(out[i])
-                outi = outi.unsqueeze(2)
-                outs.append(outi)
-
-            out = torch.cat(outs, dim=2)  # B, 96, B*P, H, W
-
-            if self.patch_norm is not None:
-                D, Wh, Ww = out.size(2), out.size(3), out.size(4)
-                out = out.flatten(2).transpose(1, 2)
-                out = self.patch_norm(out)
-                out = out.transpose(1, 2).view(-1, self.embed_dim, D, Wh, Ww)
-
-        return out
-
-
-class MultiGPU_MS_Spiking_PatchEmbed_sfn(MultiGPU_Spiking_PatchEmbed_sfn):
-    use_MS = True
 class Spiking_PatchEmbed_Conv(nn.Module):
     '''
     spiking patch embedding layer with 4 channel input as spike flow net
+    extra convolutional layer for downsampling
+    SEW shortcut
     '''
     use_MS = False
     num_res = 2
@@ -1418,10 +1329,11 @@ class Spiking_PatchEmbed_Conv(nn.Module):
     def extra_repr(self) -> str:
         return f" num_steps={self.num_steps}, patches_resolution={self.patches_resolution}"
 
-
 class MS_Spiking_PatchEmbed_Conv_Local(nn.Module):
     '''
     spiking patch embedding layer with 4 channel input as spike flow net
+    extra convolutional layer for downsampling
+    MS shortcut
     '''
     use_MS = True
     num_res = 2
@@ -1791,13 +1703,14 @@ class Spiking_PatchEmbed_Conv_sfn(nn.Module):
         #bn
         # flops += self.embed_dim *self.patches_resolution[0] * self.patches_resolution[1]
         return flops_record
+
 class MS_Spiking_PatchEmbed_Conv_sfn(Spiking_PatchEmbed_Conv_sfn):
     use_MS = True
 
-
 class MS_PED_Spiking_PatchEmbed_Conv_sfn(nn.Module):
     '''
-    spiking patch embedding layer with 4 channel input as spike flow net
+    spiking patch embedding layer with PED with 4 channel input as spike flow net
+    MS shortcut
     '''
     use_MS = True
     num_res = 2
@@ -1856,7 +1769,6 @@ class MS_PED_Spiking_PatchEmbed_Conv_sfn(nn.Module):
 
     def forward(self, x):
         """Forward function."""
-        # padding
         if x.size(1) > self.num_bins:
             x = x[:, :self.num_bins, :, :, :]
 
@@ -1871,24 +1783,10 @@ class MS_PED_Spiking_PatchEmbed_Conv_sfn(nn.Module):
 
         x = new_event_reprs.permute(4, 0, 1, 2, 3)
 
-
-        # spiking_rates = {"input": torch.mean((x != 0).float())}
-
         xs = self.head(x)
-        # spiking_rates["head"] = torch.mean((xs != 0).float())
-
-        # out, spiking_rates["res"] = self.residual_encoding(xs)
         xs = self.conv(xs)
         out = self.residual_encoding(xs)
-
-
-        # out_plot = out.detach().flatten(0,1)
-        # plot_2d_feature_map(out_plot[4,:,...])
-
         out = self.proj(out)  # T, B, C, H, W
-
-        # out_plot = out.detach().flatten(0,1)
-        # plot_2d_feature_map(out_plot[2,:,...])
         return out
 
     def extra_repr(self) -> str:
@@ -1938,85 +1836,22 @@ class MS_PED_Spiking_PatchEmbed_Conv_sfn(nn.Module):
         # flops += self.embed_dim *self.patches_resolution[0] * self.patches_resolution[1]
         return flops_record
 
-class MultiGPU_Spiking_PatchEmbed_Conv_sfn(Spiking_PatchEmbed_Conv_sfn):
-    use_MS = False
-    num_res = 2
-
-    def __init__(self,**kwargs):
-        super().__init__(**kwargs)
-        self.head = self.head.to(dev_0)
-        self.conv = self.conv.to(dev_0)
-        self.residual_encoding = self.residual_encoding.to(dev_0)
-        self.proj = self.proj.to(dev_0)
-
-    def forward(self, x):
-        """Forward function."""
-        # padding
-        if x.size(1) > self.num_bins:
-            x = x[:, :self.num_bins, :, :, :]
 
 
-        event_reprs = x.permute(0, 2, 3, 4, 1)
-
-        new_event_reprs = torch.zeros(event_reprs.size(0), self.num_ch, event_reprs.size(2), event_reprs.size(3),
-                                      self.num_steps).to(event_reprs.device)
-
-        for i in range(self.num_ch):
-            start, end = i // 2 * self.num_steps, (i // 2 + 1) * self.num_steps
-            new_event_reprs[:, i, :, :, :] = event_reprs[:, i % 2, :, :, start:end]
-
-        x = new_event_reprs.permute(4, 0, 1, 2, 3)
-
-        # spiking_rates = {"input": torch.mean((x != 0).float())}
-
-        xs = self.head(x.to(dev_0))
-        # spiking_rates["head"] = torch.mean((xs != 0).float())
-        xs = self.conv(xs)
-        # out, spiking_rates["res"] = self.residual_encoding(xs)
-        out = self.residual_encoding(xs.to(dev_0))
-
-        # out_plot = out.detach()
-        # plot_2d_feature_map(out_plot[0,0,:,...])
-        if self.spike_proj_flag:
-            out = self.proj(out)  # T, B, C, H, W
-
-        else:
-            outs = []
-            for i in range(self.num_blocks):
-                outi = self.proj(out[i])
-                outi = outi.unsqueeze(2)
-                outs.append(outi)
-
-            out = torch.cat(outs, dim=2)  # B, 96, B*P, H, W
-
-            if self.patch_norm is not None:
-                D, Wh, Ww = out.size(2), out.size(3), out.size(4)
-                out = out.flatten(2).transpose(1, 2)
-                out = self.patch_norm(out)
-                out = out.transpose(1, 2).view(-1, self.embed_dim, D, Wh, Ww)
-
-        return out
-
-class MultiGPU_MS_Spiking_PatchEmbed_Conv_sfn(MultiGPU_Spiking_PatchEmbed_Conv_sfn):
-    use_MS = True
 
 if __name__ == "__main__":
     _seed_ = 16146
     random.seed(_seed_)
     torch.manual_seed(_seed_)
     torch.cuda.manual_seed_all(_seed_)
-
     # (batch_size, num_bins, num_polarities, height, width)
-
     chunk = torch.rand([1, 10, 2, 240, 320])  # ( B, bin, C, H, W)
     spiking_kwargs = {"num_steps": 5, "v_reset": None, "v_th": 0.5,"neuron_type": "lif", "surrogate_fun": 'surrogate.ATan()', "tau": 2., "detach_reset": True, "spike_norm": "BN"}
     # model = MS_Spiking_PatchEmbed_Conv_sfn(img_size= (240,320),patch_size=(1, 1, 2, 2), in_chans=10, embed_dim=96,spiking_proj=True,**spiking_kwargs)
     model = MS_PED_Spiking_PatchEmbed_Conv_sfn(img_size=(240, 320), patch_size=(1, 1, 2, 2), in_chans=10, embed_dim=96,
                                            spiking_proj=True, **spiking_kwargs)
-
     functional.reset_net(model)
     functional.set_step_mode(model, "m")
     print('--- Test Model ---')
     print(model)
-
     outps = model(chunk)

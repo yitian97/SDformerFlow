@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
@@ -15,14 +14,6 @@ from einops import rearrange
 from spikingjelly.activation_based import layer as sj_layer
 from spikingjelly.activation_based import surrogate,neuron
 
-if torch.cuda.is_available():
-    dev_0 = "cuda:0"
-    dev_1 = "cuda:1"
-    dev_2 = "cuda:2"
-else:
-    dev_0 = "cpu"
-    dev_1 = "cpu"
-    dev_2 = "cpu"
 
 class VanillaAttention(nn.Module):
     def __init__(self, scale=0.125):
@@ -43,12 +34,8 @@ class SDAttention(nn.Module):
 
 
     def forward(self, k, v):
-        # input is 4 dimension tensor
-        # [batch_size, head, length, d_tensor]
-
         kv = k.mul(v)
         score = kv.sum(dim=-2, keepdim=True)
-
 
         return score
 
@@ -174,42 +161,6 @@ class Spiking_Mlp(nn.Module):
 
         return x
 
-class Spiking_Cpb_Mlp(nn.Module):
-    """ Multilayer perceptron."""
-# todo:revise
-    def __init__(self, in_features, hidden_features=None, out_features=None, norm_layer=None, act_layer=nn.GELU, drop=0.,
-                 **spiking_kwargs):
-        super().__init__()
-        out_features = out_features or in_features
-
-        hidden_features = hidden_features or in_features
-        self.fc1 =  sj_layer.Linear(in_features, hidden_features,bias=False)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            self.bn1 = SpikingNormLayer(hidden_features, spiking_kwargs["num_steps"], spiking_kwargs["spike_norm"], v_th=spiking_kwargs["v_th"] )
-        self.sn1 = Spiking_neuron(**spiking_kwargs)
-        self.fc2 = sj_layer.Linear(hidden_features, out_features,bias=False)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            self.bn2 = SpikingNormLayer(out_features, spiking_kwargs["num_steps"], spiking_kwargs["spike_norm"],
-                                    v_th=spiking_kwargs["v_th"])
-        # self.sn2 = Spiking_neuron(**spiking_kwargs)
-
-
-
-    def forward(self, x):
-
-        x = self.fc1(x)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            x= self.bn1(x.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
-        x = self.sn1(x)
-
-
-        x = self.fc2(x)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            x = self.bn2(x.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
-
-
-        return x
-
 class MS_Spiking_Mlp(Spiking_Mlp):
     def forward(self, x):
         if self.norm_layer in ["LN", "GN"]:
@@ -228,7 +179,6 @@ class MS_Spiking_Mlp(Spiking_Mlp):
 
 
         return x
-
 
 
 class Spiking_BN_WindowAttention3D(nn.Module):
@@ -541,117 +491,116 @@ class SDSA_WindowAttention3D(Spiking_BN_WindowAttention3D):
         # x = self.proj_drop(x)
         return x, attn
 
-
-class SDSA_QK_WindowAttention3D(nn.Module):
-    #proj_sn, qkv(linear,bn,sn),proj,proj_bn,
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.attn_score = SDAttention()
-    def __init__(self, dim, window_size, pretrained_window_size, num_heads, version = "swinv1", qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.,norm= None,**spiking_kwargs):
-        super().__init__()
-        self.dim = dim
-        self.window_size = window_size  # Wd, Wh, Ww
-        self.pretrained_window_size = pretrained_window_size
-        self.num_heads = num_heads
-        head_dim = dim // num_heads
-        self.version = version
-        self.norm_layer= norm
-        spiking_kwargs['num_steps'] = self.window_size[0]
-
-        if spiking_kwargs["neuron_type"] in ["psn", "glif"]:
-            self.scale = 1
-        else:
-            self.scale = qk_scale or head_dim ** -0.5
-        # self.attn_score = SDAttention()
-
-        self.attn_score = QKAttention()
-        # define a parameter table of relative position bias
-        self.positional_encoding = nn.Parameter(torch.zeros(size=(1, num_heads, window_size[0] * window_size[1] * window_size[2], head_dim)))
-        # self.qkv_sn = Spiking_neuron(**spiking_kwargs)
-        self.linear_q = sj_layer.Linear(dim, dim , bias=False)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            self.bn_q = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
-        self.sn_q = Spiking_neuron(**spiking_kwargs)
-        #
-        self.linear_k = sj_layer.Linear(dim, dim, bias=False)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            self.bn_k = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
-        self.sn_k =  Spiking_neuron(**spiking_kwargs)
-        #
-        # self.linear_v = sj_layer.Linear(dim, dim, bias=False)
-        # if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-        #     self.bn_v = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
-        # self.sn_v = Spiking_neuron(**spiking_kwargs)
-        #
-        # self.linear_out = sj_layer.Linear(dim * 3, dim )
-        # self.bn_out = SpikingNormLayer(dim ,norm,spiking_kwargs['v_th'])
-        # self.sn_out = Spiking_neuron(**spiking_kwargs)
-
-        # self.Ham_attn = HammingDistanceAttention()
-        self.attn_sn = Spiking_neuron(**spiking_kwargs)
-        self.attn_drop = sj_layer.Dropout(attn_drop)
-        self.proj = sj_layer.Linear(dim, dim)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            self.proj_bn = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
-        self.proj_sn = Spiking_neuron(**spiking_kwargs)
-
-        self.proj_drop = sj_layer.Dropout(proj_drop)
-
-
-
-
-
-    def forward(self, x, mask=None):
-        """ Forward function.
-        Args:
-            x: input features with shape of (num_windows*B, N, C)
-            mask: (0/-inf) mask with shape of (num_windows, N, N) or None
-        """
-        T, B_, H, W, C = x.shape
-        # qkv = self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-
-        x = self.proj_sn(x)
-        q = self.linear_q(x)  # T ,B_, H,W,C
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            q = self.bn_q(q.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
-        q = self.sn_q(q)
-        k = self.linear_k(x)  # B_, numHead, N, C
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            k = self.bn_k(k.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
-        k = self.sn_k(k)
-        # v = self.linear_v(x)  # B_, numHead, N, C if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]: v =
-        # self.bn_v(v.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2) v = self.sn_v(v) q, k, v = q.reshape(B_,
-        # self.num_heads, -1, C // self.num_heads), k.reshape(B_, self.num_heads, -1, C // self.num_heads),
-        # v.reshape(B_, self.num_heads, -1, C // self.num_heads)
-        q, k = q.reshape(B_, self.num_heads, -1, C // self.num_heads), k.reshape(B_, self.num_heads, -1,
-                                                                                    C // self.num_heads)
-        N = q.shape[2]
-        k = k + self.positional_encoding
-        attn = self.attn_score(q, k)
-
-            # HammingDistance attention
-        # attn, store = self.Ham_attn(q, k, v)  # 192 3 200 32
-
-        # attn = attn + self.positional_encoding.unsqueeze(0)  # B_,n_head,N,N
-
-        # if mask is not None:
-        #     nW = mask.shape[0]
-        #     attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
-        #     attn = attn.view(-1, self.num_heads, N, N)
-
-        attn = self.attn_drop(attn)
-
-        # x = self.proj_sn(x)
-        # print('attn: ', attn.shape, ', v: ', v.shape, ', x: ', x.shape)
-        x = (attn).reshape(B_, self.num_heads, T, H, W, C // self.num_heads)
-        x = x.permute(2, 0, 3, 4, 1, 5).reshape(T, B_, H, W, C)
-        attn = self.attn_sn(x)
-        x = self.proj(x)
-        if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
-            x = self.proj_bn(x.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
-        x = x.reshape(B_, N, C)
-        # x = self.proj_drop(x)
-        return x, attn
+# class SDSA_QK_WindowAttention3D(nn.Module):
+#     #proj_sn, qkv(linear,bn,sn),proj,proj_bn,
+#     # def __init__(self, *args, **kwargs):
+#     #     super().__init__(*args, **kwargs)
+#     #     self.attn_score = SDAttention()
+#     def __init__(self, dim, window_size, pretrained_window_size, num_heads, version = "swinv1", qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.,norm= None,**spiking_kwargs):
+#         super().__init__()
+#         self.dim = dim
+#         self.window_size = window_size  # Wd, Wh, Ww
+#         self.pretrained_window_size = pretrained_window_size
+#         self.num_heads = num_heads
+#         head_dim = dim // num_heads
+#         self.version = version
+#         self.norm_layer= norm
+#         spiking_kwargs['num_steps'] = self.window_size[0]
+#
+#         if spiking_kwargs["neuron_type"] in ["psn", "glif"]:
+#             self.scale = 1
+#         else:
+#             self.scale = qk_scale or head_dim ** -0.5
+#         # self.attn_score = SDAttention()
+#
+#         self.attn_score = QKAttention()
+#         # define a parameter table of relative position bias
+#         self.positional_encoding = nn.Parameter(torch.zeros(size=(1, num_heads, window_size[0] * window_size[1] * window_size[2], head_dim)))
+#         # self.qkv_sn = Spiking_neuron(**spiking_kwargs)
+#         self.linear_q = sj_layer.Linear(dim, dim , bias=False)
+#         if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
+#             self.bn_q = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
+#         self.sn_q = Spiking_neuron(**spiking_kwargs)
+#         #
+#         self.linear_k = sj_layer.Linear(dim, dim, bias=False)
+#         if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
+#             self.bn_k = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
+#         self.sn_k =  Spiking_neuron(**spiking_kwargs)
+#         #
+#         # self.linear_v = sj_layer.Linear(dim, dim, bias=False)
+#         # if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
+#         #     self.bn_v = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
+#         # self.sn_v = Spiking_neuron(**spiking_kwargs)
+#         #
+#         # self.linear_out = sj_layer.Linear(dim * 3, dim )
+#         # self.bn_out = SpikingNormLayer(dim ,norm,spiking_kwargs['v_th'])
+#         # self.sn_out = Spiking_neuron(**spiking_kwargs)
+#
+#         # self.Ham_attn = HammingDistanceAttention()
+#         self.attn_sn = Spiking_neuron(**spiking_kwargs)
+#         self.attn_drop = sj_layer.Dropout(attn_drop)
+#         self.proj = sj_layer.Linear(dim, dim)
+#         if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
+#             self.proj_bn = SpikingNormLayer(dim, self.window_size[0], norm, spiking_kwargs['v_th'])
+#         self.proj_sn = Spiking_neuron(**spiking_kwargs)
+#
+#         self.proj_drop = sj_layer.Dropout(proj_drop)
+#
+#
+#
+#
+#
+#     def forward(self, x, mask=None):
+#         """ Forward function.
+#         Args:
+#             x: input features with shape of (num_windows*B, N, C)
+#             mask: (0/-inf) mask with shape of (num_windows, N, N) or None
+#         """
+#         T, B_, H, W, C = x.shape
+#         # qkv = self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+#
+#         x = self.proj_sn(x)
+#         q = self.linear_q(x)  # T ,B_, H,W,C
+#         if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
+#             q = self.bn_q(q.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
+#         q = self.sn_q(q)
+#         k = self.linear_k(x)  # B_, numHead, N, C
+#         if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
+#             k = self.bn_k(k.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
+#         k = self.sn_k(k)
+#         # v = self.linear_v(x)  # B_, numHead, N, C if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]: v =
+#         # self.bn_v(v.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2) v = self.sn_v(v) q, k, v = q.reshape(B_,
+#         # self.num_heads, -1, C // self.num_heads), k.reshape(B_, self.num_heads, -1, C // self.num_heads),
+#         # v.reshape(B_, self.num_heads, -1, C // self.num_heads)
+#         q, k = q.reshape(B_, self.num_heads, -1, C // self.num_heads), k.reshape(B_, self.num_heads, -1,
+#                                                                                     C // self.num_heads)
+#         N = q.shape[2]
+#         k = k + self.positional_encoding
+#         attn = self.attn_score(q, k)
+#
+#             # HammingDistance attention
+#         # attn, store = self.Ham_attn(q, k, v)  # 192 3 200 32
+#
+#         # attn = attn + self.positional_encoding.unsqueeze(0)  # B_,n_head,N,N
+#
+#         # if mask is not None:
+#         #     nW = mask.shape[0]
+#         #     attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
+#         #     attn = attn.view(-1, self.num_heads, N, N)
+#
+#         attn = self.attn_drop(attn)
+#
+#         # x = self.proj_sn(x)
+#         # print('attn: ', attn.shape, ', v: ', v.shape, ', x: ', x.shape)
+#         x = (attn).reshape(B_, self.num_heads, T, H, W, C // self.num_heads)
+#         x = x.permute(2, 0, 3, 4, 1, 5).reshape(T, B_, H, W, C)
+#         attn = self.attn_sn(x)
+#         x = self.proj(x)
+#         if self.norm_layer in ["BN", "BNTT", "tdBN", "IN"]:
+#             x = self.proj_bn(x.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
+#         x = x.reshape(B_, N, C)
+#         # x = self.proj_drop(x)
+#         return x, attn
 
 class Spiking_QK_WindowAttention3D(nn.Module):
     def __init__(self, dim, window_size, pretrained_window_size, num_heads, version = "swinv1", qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0.,norm= None,**spiking_kwargs):
@@ -804,9 +753,7 @@ class Spiking_SwinTransformerBlock3D(nn.Module):
         assert 0 <= self.shift_size[0] < self.window_size[0], "shift_size must in 0-window_size"
         assert 0 <= self.shift_size[1] < self.window_size[1], "shift_size must in 0-window_size"
         assert 0 <= self.shift_size[2] < self.window_size[2], "shift_size must in 0-window_size"
-        #TODO delete
-        # self.norm1 = SpikingNormLayer(dim,spiking_kwargs["num_steps"],norm_layer,v_th=spiking_kwargs["v_th"])
-        # self.norm2 = SpikingNormLayer(dim, spiking_kwargs["num_steps"], norm_layer,v_th=spiking_kwargs["v_th"])
+
         self.norm_layer = norm_layer
         if self.norm_layer in ["LN", "GN"]:
             self.norm1 = SpikingNormLayer(dim,spiking_kwargs["num_steps"],norm_layer,v_th=spiking_kwargs["v_th"])
@@ -1029,7 +976,6 @@ class MS_SpikingPatchMerging(SpikingPatchMerging):
 
 
 
-
 # cache each stage results
 @lru_cache()
 def compute_mask(D, H, W, window_size, shift_size, device):
@@ -1157,6 +1103,7 @@ class Spiking_Swin_BasicLayer(nn.Module):
             else:
                 # return attention of the last block
                 return blk(x, attn_mask, return_attention=True)
+
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
@@ -1181,50 +1128,6 @@ class Spiking_Swin_BasicLayer(nn.Module):
 class MS_Spiking_Swin_BasicLayer(Spiking_Swin_BasicLayer):
     swin_block_type = MS_Spiking_SwinTransformerBlock3D
 
-class MultiGPU_MS_Spiking_Swin_BasicLayer(Spiking_Swin_BasicLayer):
-    swin_block_type = MS_Spiking_SwinTransformerBlock3D
-
-    def __init__(self, **args):
-        super().__init__(**args)
-
-        for i in range(self.depth):
-            if i < self.depth//2-1:
-                self.swin_blocks[i] = self.swin_blocks[i].to(dev_1)
-            else:
-                self.swin_blocks[i] = self.swin_blocks[i].to(dev_2)
-
-        if self.downsample is not None:
-            self.downsample = self.downsample.to(dev_1)
-
-
-    def forward(self, x):
-        """ Forward function.
-        Args:
-            x: Input feature, tensor size (B, C, D, H, W).
-        """
-        # calculate attention mask for SW-MSA
-        B, C, D, H, W = x.shape
-        window_size, shift_size = get_window_size((D, H, W), self.window_size, self.shift_size)
-        x = rearrange(x, 'b c d h w -> b d h w c')
-        Dp = int(np.ceil(D / window_size[0])) * window_size[0]
-        Hp = int(np.ceil(H / window_size[1])) * window_size[1]
-        Wp = int(np.ceil(W / window_size[2])) * window_size[2]
-        attn_mask = compute_mask(Dp, Hp, Wp, window_size, shift_size, x.device)
-        for i, blk in enumerate(self.swin_blocks):
-            if i < self.depth//2-1:
-                x = blk(x.to(dev_1), attn_mask.to(dev_1))
-            else:
-                x = blk(x.to(dev_2), attn_mask.to(dev_2))
-
-
-        x = x.view(B, D, H, W, -1)
-
-        if self.downsample is not None:
-            x_out = self.downsample(x.to(dev_1))
-        else:
-            x_out = x
-        x_out = rearrange(x_out, 'b d h w c -> b c d h w')
-        return x_out, x #x before patch merging
 
 class Spiking_SwinTransformer3D_v2(nn.Module):
     swin_layer_type = Spiking_Swin_BasicLayer
@@ -1308,12 +1211,6 @@ class Spiking_SwinTransformer3D_v2(nn.Module):
         num_features = [int(embed_dim * 2 ** i) for i in range(self.num_layers)]
         self.num_features = num_features
 
-        # add a norm layer for each output
-        #TODO delete
-        # for i_layer in self.out_indices:
-        #     layer = SpikingNormLayer(self.num_features[i_layer], spiking_kwargs["num_steps"], spiking_kwargs["spike_norm"],v_th=spiking_kwargs["v_th"])
-        #     layer_name = f'norm{i_layer}'
-        #     self.add_module(layer_name, layer)
 
         if self.norm_layer in ["LN", "GN"]:
 
@@ -1388,9 +1285,11 @@ class Spiking_SwinTransformer3D_v2(nn.Module):
 
 
 class MS_Spiking_SwinTransformer3D_v2(Spiking_SwinTransformer3D_v2):
+    """
+    Spiking Swin Transformer 3D with MS shortcut
+    """
     swin_layer_type = MS_Spiking_Swin_BasicLayer
     downsample_layer_type = MS_SpikingPatchMerging
-    # downsample_layer_type = PED_SpikingPatchMerging
 
 
 

@@ -105,8 +105,6 @@ class flow_loss_supervised(torch.nn.Module):
         return  curr_loss
 
 
-
-
 class AEE(torch.nn.Module):
 
     def __init__(self, pred, label, mask, flow_scaling=128):
