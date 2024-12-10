@@ -1,13 +1,11 @@
-# Spiking Neural Network Transformer for Event-based optical flow estimation
+# SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation.
 
 
-[//]: # (This code allows for the reproduction of our paper: SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow, ICPR2024)
+This code allows for the reproduction of our paper: 
+SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow, ICPR2024 [[paper]](https://link.springer.com/chapter/10.1007/978-3-031-78354-8_30)
+and our new improved version of the model:
+SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation. [[arxiv]](https://arxiv.org/abs/2409.04082)
 
-[//]: # ()
-[//]: # (and our new improved version of the model:)
-
-[//]: # (SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation. [[arxiv]]&#40;https://arxiv.org/abs/2409.04082&#41;)
-This code allows for the reproduction of our paper: Spatiotemporal swin spikeformer for event-based optical flow estimation.
 The following are results tested on our validation dataset on DSEC dataset. Flow estimation are masked where valid ground truth data is available.
 
 <!-- &nbsp; -->
@@ -43,7 +41,7 @@ DSEC dataset can be downloaded in the [DSEC dataset](https://dsec.ifi.uzh.ch/dse
 
 MVSEC dataset can be downloaded in the [MVSEC dataset](https://daniilidis-group.github.io/mvsec/).
 
-MDR dataset can be downloaded in the [MDR dataset](https://daniilidis-group.github.io/mvsec/).
+MDR dataset can be downloaded in the [MDR dataset](https://github.com/boomluo02/ADMFlow).
 
 For DSEC dataset, the data is preprocessed using `DSEC_dataloader/DSEC_dataset_preprocess.py` script.
 We follow the same data splits as in [OF_EV_SNN](https://github.com/J-Cuadrado/OF_EV_SNN).
@@ -104,45 +102,30 @@ For training SDformerFlow on the MDR dataset, run:
 python train_mdr_supervised_SNN.py --config configs/train_MDR_supervised_MS_Spikingformer.yml
 ```
 
-[//]: # (## Please cite our paper if you find the code useful:)
+## Please cite our paper if you find the code useful:
 
-[//]: # (```)
+```
+@inproceedings{tian2024sdformerflow,
+               title={SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow},
+               author={Tian, Yi and Andrade-Cetto, Juan},
+               booktitle={Pattern Recognition},
+               year={2024},
+               publisher={Springer Nature Switzerland},
+               pages={475--491}
+}
+```
 
-[//]: # (@inproceedings{tian2024sdformerflow,)
-
-[//]: # (               title={SDformerFlow: Spiking Neural Network Transformer for Event-based Optical Flow},)
-
-[//]: # (               author={Tian, Yi and Andrade-Cetto, Juan},)
-
-[//]: # (               booktitle={International Conference on Pattern Recognition &#40;ICPR&#41;},)
-
-[//]: # (               year={2024},)
-
-[//]: # (})
-
-[//]: # (```)
-
-[//]: # (```)
-
-[//]: # (@misc{tian2024sdformerflow2,)
-
-[//]: # (      title={SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation}, )
-
-[//]: # (      author={Yi Tian and Juan Andrade-Cetto},)
-
-[//]: # (      year={2024},)
-
-[//]: # (      eprint={2409.04082},)
-
-[//]: # (      archivePrefix={arXiv},)
-
-[//]: # (      primaryClass={cs.CV},)
-
-[//]: # (      url={https://arxiv.org/abs/2409.04082}, )
-
-[//]: # (})
-
-[//]: # (```)
+```
+@misc{tian2024sdformerflow2,
+      title={SDformerFlow: Spatiotemporal swin spikeformer for event-based optical flow estimation}, 
+      author={Yi Tian and Juan Andrade-Cetto},
+      year={2024},
+      eprint={2409.04082},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2409.04082}, 
+}
+```
 ## Thanks to the following open-source projects:
 
 
